@@ -27,10 +27,37 @@ const client = new Client(dbConfig);
 client.connect();
 
 app.get("/", async (req, res) => {
-  const dbres = await client.query('select * from categories');
-  res.json(dbres.rows);
+  const dbres = await client.query('select * from posts order by post_date desc');
+  res.status(200).json({data: dbres.rows});
 });
 
+app.get<{id: string}>("/:id", async (req, res) => {
+  const dbres = await client.query('select * from posts where id=$1', [parseInt(req.params.id)]);
+  if (dbres.rowCount === 0) {
+    res.status(404).json({status: "no post with that id"})
+  } else {
+    res.status(200).json({data: dbres.rows});
+  }
+});
+
+app.post<{}, {}, {post: string}>("/", async (req, res) => {
+  const {post} = req.body;
+  if (typeof post === 'string') {
+    const dbres = await client.query('insert into posts (post) values ($1)', [post]);
+    res.status(200).json({status: "succes"});
+  } {
+    res.status(400).json({status: "wrong post type"});
+  }
+});
+
+app.delete<{id: string}>("/:id", async (req, res) => {
+  const dbres = await client.query('delete from posts where id=$1', [parseInt(req.params.id)]);
+  if (dbres.rowCount === 1) {
+    res.status(200).json({status: "success"});
+  } else {
+    res.status(404).json({status: "no post with that id"});
+  }
+});
 
 //Start the server on the given port
 const port = process.env.PORT;
