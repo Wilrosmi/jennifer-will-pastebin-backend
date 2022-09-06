@@ -21,9 +21,7 @@ const herokuSSLSetting = { rejectUnauthorized: false }
 const sslSetting = process.env.LOCAL ? false : herokuSSLSetting
 const dbConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: sslSetting
 }
 
 
@@ -51,7 +49,7 @@ app.get<{id: string}>("/:id", async (req, res) => {
 app.post<{}, {}, {message: string, title?: string}>("/", async (req, res) => {
   const {message, title} = req.body; 
   if (typeof message === 'string' && message.length > 0 && (typeof title === 'string' || typeof title === 'undefined')) {
-    const dbres = await client.query('insert into posts (message, title) values ($1, $2)', [message, title]);
+    await client.query('insert into posts (message, title) values ($1, $2)', [message, title]);
     res.status(200).json({status: "success"});
   } else {
     res.status(400).json({status: "wrong input type"});
@@ -59,11 +57,41 @@ app.post<{}, {}, {message: string, title?: string}>("/", async (req, res) => {
 });
 
 app.delete<{id: string}>("/:id", async (req, res) => {
-  const dbres = await client.query('delete from posts where id=$1', [parseInt(req.params.id)]);
+  const id = parseInt(req.params.id);
+  await client.query(`delete from comments where post_id=$1`, [id]);
+  const dbres = await client.query('delete from posts where id=$1', [id]);
   if (dbres.rowCount === 1) {
     res.status(200).json({status: "success"});
   } else {
     res.status(404).json({status: "no post with that id"});
+  }
+});
+
+
+app.get<{id: string}>("/:id/comments", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const dbres = await client.query(`select * from comments where post_id=$1 order by time desc`, [id]);
+  res.status(200).json({data: dbres.rows});
+});
+
+app.post<{id: string}, {}, {comment: string}>("/:id/comments", async (req, res) => {
+  const id = parseInt(req.params.id);
+  const {comment} = req.body
+  if (typeof req.body.comment === 'string') {
+    await client.query('insert into comments (comment, post_id) values ($1, $2)', [comment, id]);
+    res.status(200).json({status: "success"});
+  } else {
+    res.status(400).json({status: "comment is of wrong type"});
+  }
+});
+
+app.delete<{id: string, comment_id: string}>("/:id/comments/:comment_id", async (req, res) => {
+  const comment_id = parseInt(req.params.comment_id);
+  const dbres = await client.query(`delete from comments where comment_id=$1`, [comment_id]);
+  if (dbres.rowCount === 1) {
+    res.status(200).json({status: "success"});
+  } else {
+    res.status(404).json({status: "no comment with that id"});
   }
 });
 
