@@ -21,7 +21,7 @@ const herokuSSLSetting = { rejectUnauthorized: false }
 const sslSetting = process.env.LOCAL ? false : herokuSSLSetting
 const dbConfig = {
   connectionString: process.env.DATABASE_URL,
-  ssl: sslSetting
+  ssl: {rejectUnauthorized: false }
 }
 
 
@@ -55,6 +55,16 @@ app.post<{}, {}, {message: string, title?: string}>("/", async (req, res) => {
     res.status(400).json({status: "wrong input type"});
   }
 });
+
+app.put<{id:string},{},{message:string, title?: string}>("/:id", async (req,res) => {
+  const {message, title} = req.body; 
+  if (typeof message === 'string' && message.length > 0 && (typeof title === 'string' || typeof title === 'undefined')) {
+    await client.query('update posts set message = $1, title=$2 where id = $3', [message, title, parseInt(req.params.id)]);
+    res.status(200).json({status: "success"});
+  } else {
+    res.status(400).json({status: "wrong input type"});
+  }
+})
 
 app.delete<{id: string}>("/:id", async (req, res) => {
   const id = parseInt(req.params.id);
