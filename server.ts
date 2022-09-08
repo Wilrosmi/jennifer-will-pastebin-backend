@@ -95,6 +95,16 @@ app.post<{id: string}, {}, {comment: string}>("/:id/comments", async (req, res) 
   }
 });
 
+app.put<{id:string, comment_id:string},{},{comment:string}>("/:id/comments/:comment_id", async (req,res) => {
+  const {comment} = req.body; 
+  if (typeof comment === "string") {
+    await client.query('update comments set comment = $1 where comment_id = $2', [comment, parseInt(req.params.comment_id)]);
+    res.status(200).json({status: "success"});
+  } else {
+    res.status(400).json({status: "wrong input type"});
+  }
+})
+
 app.delete<{id: string, comment_id: string}>("/:id/comments/:comment_id", async (req, res) => {
   const comment_id = parseInt(req.params.comment_id);
   const dbres = await client.query(`delete from comments where comment_id=$1`, [comment_id]);
