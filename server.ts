@@ -87,7 +87,7 @@ app.get<{id: string}>("/:id/comments", async (req, res) => {
 app.post<{id: string}, {}, {comment: string}>("/:id/comments", async (req, res) => {
   const id = parseInt(req.params.id);
   const {comment} = req.body
-  if (typeof req.body.comment === 'string') {
+  if (typeof req.body.comment === 'string' && req.body.comment.length > 0) {
     await client.query('insert into comments (comment, post_id) values ($1, $2)', [comment, id]);
     res.status(200).json({status: "success"});
   } else {
@@ -97,7 +97,7 @@ app.post<{id: string}, {}, {comment: string}>("/:id/comments", async (req, res) 
 
 app.put<{id:string, comment_id:string},{},{comment:string}>("/:id/comments/:comment_id", async (req,res) => {
   const {comment} = req.body; 
-  if (typeof comment === "string") {
+  if (typeof comment === "string" && comment.length > 0) {
     await client.query('update comments set comment = $1 where comment_id = $2', [comment, parseInt(req.params.comment_id)]);
     res.status(200).json({status: "success"});
   } else {
